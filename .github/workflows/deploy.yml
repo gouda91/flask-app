@@ -3,8 +3,7 @@ name: Build & Push Flask App to Docker Hub
 on:
   push:
     branches:
-      - main  # Runs when pushing to main branch
-
+      - main  # Runs on push to the main branch
   workflow_dispatch:  # Allows manual trigger from GitHub Actions UI
 
 jobs:
@@ -18,22 +17,30 @@ jobs:
       - name: 🔧 Set Up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: 🔍 Debug Secrets
+      - name: 🔍 Debug Secret Length
         run: |
-          echo "DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}"
-          echo "DOCKER_PASSWORD length: ${{ secrets.DOCKER_PASSWORD }}"
+          echo "DOCKER_PASSWORD length: ${#DOCKER_PASSWORD}"
+        env:
+          DOCKER_PASSWORD: "${{ secrets.DOCKER_PASSWORD }}"  # Pass secret as env variable
 
       - name: 🔑 Login to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        run: |
+          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        env:
+          DOCKER_USERNAME: "${{ secrets.DOCKER_USERNAME }}"
+          DOCKER_PASSWORD: "${{ secrets.DOCKER_PASSWORD }}"
 
       - name: 🏗 Build Docker Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/flask-app:latest .
+          docker build -t $DOCKER_USERNAME/flask-app:latest .
+        env:
+          DOCKER_USERNAME: "${{ secrets.DOCKER_USERNAME }}"
 
       - name: 🚀 Push Image to Docker Hub (Private)
         run: |
-          docker tag ${{ secrets.DOCKER_USERNAME }}/flask-app:latest ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
+          docker push $DOCKER_USERNAME/flask-app:latest
+        env:
+          DOCKER_USERNAME: "${{ secrets.DOCKER_USERNAME }}"
 
       - name: ✅ Logout from Docker Hub
         run: docker logout
